@@ -215,7 +215,20 @@ function answer(raw){
   return "The current time is "+new Date().toLocaleTimeString();
  }
 
- if(t.includes("what date")||t==="date"){
+ if (
+  t.includes("what date") ||
+  t.includes("today's date") ||
+  t.includes("todays date") ||
+  t.includes("today date") ||
+  t === "date"
+) {
+  return "Today's date is " + new Date().toLocaleDateString("en-IN", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  });
+ }
   return "Today's date is "+new Date().toLocaleDateString();
  }
 
