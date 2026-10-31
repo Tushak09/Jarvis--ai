@@ -1,1 +1,307 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#050d19">
+<title>J.A.R.V.I.S. AI</title>
+
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;background:#050d19;color:#eaf6ff;
+ font-family:Arial,sans-serif;min-height:100vh
+}
+header{
+ text-align:center;padding:22px 12px;
+ border-bottom:1px solid #17405a
+}
+h1{color:#40caff;letter-spacing:5px;margin:5px}
+header p{font-size:11px;color:#80a8c2;letter-spacing:2px}
+main{max-width:650px;margin:auto;padding:15px}
+.orb{
+ width:125px;height:125px;margin:24px auto;
+ border:2px solid #30c9ff;border-radius:50%;
+ display:grid;place-items:center;font-size:42px;
+ box-shadow:0 0 25px #087bb8, inset 0 0 25px #087bb8;
+ animation:glow 2s infinite alternate
+}
+@keyframes glow{to{box-shadow:0 0 45px #16baff,inset 0 0 35px #087bb8}}
+#status{text-align:center;color:#45d3ff;font-size:12px}
+#chat{
+ height:300px;overflow-y:auto;background:#0b1929;
+ border:1px solid #1b425c;border-radius:13px;
+ padding:13px;margin-top:20px
+}
+.msg{padding:10px;margin:9px 0;border-radius:9px;line-height:1.5;overflow-wrap:anywhere}
+.user{background:#12354a;color:#8de1ff}
+.bot{background:#102b25;color:#b5f4d2}
+.controls{display:flex;gap:7px;margin-top:10px}
+input{
+ min-width:0;flex:1;background:#10243a;color:white;
+ border:1px solid #28516c;border-radius:10px;padding:13px
+}
+button{
+ background:#103a55;color:white;border:1px solid #287ba3;
+ border-radius:9px;padding:11px;cursor:pointer
+}
+button:active{background:#17658b}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:17px}
+.panel{
+ background:#0b1d30;border:1px solid #1a405b;
+ border-radius:12px;padding:13px;min-width:0
+}
+h3{color:#43caff;font-size:14px}
+.panel button{margin:3px 0}
+#notes{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px}
+.small{font-size:11px;color:#88a9c0}
+footer{text-align:center;color:#66859b;font-size:11px;padding:20px}
+</style>
+</head>
+
+<body>
+<header>
+ <h1>J.A.R.V.I.S.</h1>
+ <p>PERSONAL INTELLIGENCE SYSTEM</p>
+</header>
+
+<div class="orb">✦</div>
+<div id="status">● SYSTEM ONLINE</div>
+
+<main>
+ <div id="chat">
+  <div class="msg bot">
+   JARVIS: Hello! I am online. How can I assist you today?
+  </div>
+ </div>
+
+ <div class="controls">
+  <input id="command" placeholder="Ask me anything...">
+  <button onclick="send()">Send</button>
+  <button onclick="listen()">🎙️</button>
+ </div>
+
+ <div class="grid">
+  <section class="panel">
+   <h3>🧠 PERSONAL MEMORY</h3>
+   <div id="notes">No saved notes.</div>
+   <button onclick="showNotes()">View Memory</button>
+   <button onclick="clearNotes()">Clear Memory</button>
+  </section>
+
+  <section class="panel">
+   <h3>⚡ QUICK SHORTCUTS</h3>
+   <button onclick="openLink('https://google.com')">Google</button>
+   <button onclick="openLink('https://youtube.com')">YouTube</button>
+   <button onclick="openLink('https://maps.google.com')">Maps</button>
+   <button onclick="openLink('https://wikipedia.org')">Research</button>
+  </section>
+ </div>
+
+ <section class="panel" style="margin-top:12px">
+  <h3>⏰ REMINDERS</h3>
+  <p class="small">Example: Remind me in 5 minutes to study.</p>
+  <div id="reminders" class="small">No active reminders.</div>
+ </section>
+</main>
+
+<footer>J.A.R.V.I.S. • PERSONAL AI PROJECT • VERSION 1.0</footer>
+
+<script>
+const input=document.getElementById("command");
+const chat=document.getElementById("chat");
+const statusBox=document.getElementById("status");
+
+function addMessage(type,text){
+ const div=document.createElement("div");
+ div.className="msg "+type;
+ div.textContent=(type==="user"?"YOU: ":"JARVIS: ")+text;
+ chat.appendChild(div);
+ chat.scrollTop=chat.scrollHeight;
+}
+
+function speak(text){
+ if(!("speechSynthesis" in window))return;
+ speechSynthesis.cancel();
+ const voice=new SpeechSynthesisUtterance(text);
+ voice.lang="en-IN";
+ voice.rate=1;
+ speechSynthesis.speak(voice);
+}
+
+function respond(text){
+ addMessage("bot",text);
+ speak(text);
+}
+
+function getNotes(){
+ try{return JSON.parse(localStorage.getItem("jarvis_memory")||"[]")}
+ catch{return []}
+}
+
+function showNotes(){
+ const notes=getNotes();
+ document.getElementById("notes").textContent=
+ notes.length?notes.map((n,i)=>(i+1)+". "+n).join("\n"):"No saved notes.";
+}
+
+function clearNotes(){
+ if(confirm("Delete all saved notes?")){
+ localStorage.removeItem("jarvis_memory");
+ showNotes();
+ respond("Your saved notes have been cleared.");
+ }
+}
+
+function openLink(url){
+ window.open(url,"_blank","noopener");
+}
+
+let reminderList=[];
+
+function makeReminder(text,minutes){
+ if(!Number.isInteger(minutes)||minutes<1||minutes>1440)
+ return "Please choose a reminder between 1 and 1440 minutes.";
+
+ const id=Date.now();
+ reminderList.push({id,text});
+ updateReminders();
+
+ setTimeout(()=>{
+  alert("JARVIS REMINDER: "+text);
+  speak("Reminder. "+text);
+  reminderList=reminderList.filter(r=>r.id!==id);
+  updateReminders();
+ },minutes*60000);
+
+ return "Reminder set for "+minutes+" minutes. Keep this page open.";
+}
+
+function updateReminders(){
+ document.getElementById("reminders").textContent=
+ reminderList.length?reminderList.map(r=>r.text).join("\n"):"No active reminders.";
+}
+
+function answer(raw){
+ const t=raw.toLowerCase().trim();
+
+ if(t.startsWith("remember ")){
+  const note=raw.slice(9).trim();
+  if(!note)return "Please tell me what to remember.";
+  const notes=getNotes();
+  notes.push(note);
+  localStorage.setItem("jarvis_memory",JSON.stringify(notes));
+  showNotes();
+  return "I have saved that in your memory.";
+ }
+
+ if(t==="show notes"||t==="show memory"){
+  const notes=getNotes();
+  return notes.length?notes.join(". "):"Your memory is empty.";
+ }
+
+ if(t==="clear memory"){
+  clearNotes();
+  return "Memory clear request processed.";
+ }
+
+ const reminder=t.match(/^remind me in (\d+) minutes? to (.+)$/);
+ if(reminder){
+  return makeReminder(reminder[2],Number(reminder[1]));
+ }
+
+ if(t.includes("what time")||t==="time"){
+  return "The current time is "+new Date().toLocaleTimeString();
+ }
+
+ if(t.includes("what date")||t==="date"){
+  return "Today's date is "+new Date().toLocaleDateString();
+ }
+
+ if(t.includes("open youtube")){
+  openLink("https://youtube.com");
+  return "Opening YouTube.";
+ }
+
+ if(t.includes("open google")){
+  openLink("https://google.com");
+  return "Opening Google.";
+ }
+
+ if(t.includes("open maps")){
+  openLink("https://maps.google.com");
+  return "Opening Google Maps.";
+ }
+
+ if(t.includes("search for ")){
+  const query=raw.substring(t.indexOf("search for ")+11);
+  openLink("https://www.google.com/search?q="+encodeURIComponent(query));
+  return "Searching the internet for "+query;
+ }
+
+ if(t==="hello"||t==="hi"||t==="hey"){
+  return "Hello! I am JARVIS. Your personal assistant is ready.";
+ }
+
+ if(t.includes("who are you")){
+  return "I am JARVIS, your personal assistant prototype.";
+ }
+
+ if(t.includes("help")){
+  return "You can ask for the time, save notes, set reminders, search Google or open YouTube and Maps.";
+ }
+
+ return "I received your message. My advanced AI brain is not connected yet. That is our next upgrade.";
+}
+
+function send(){
+ const text=input.value.trim();
+ if(!text)return;
+ addMessage("user",text);
+ input.value="";
+ respond(answer(text));
+}
+
+input.addEventListener("keydown",e=>{
+ if(e.key==="Enter")send();
+});
+
+function listen(){
+ const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+
+ if(!Recognition){
+  respond("Voice recognition is not supported in this browser. Please use typing.");
+  return;
+ }
+
+ const recognition=new Recognition();
+ recognition.lang="en-IN";
+ recognition.interimResults=false;
+
+ recognition.onstart=()=>{
+  statusBox.textContent="● LISTENING...";
+ };
+
+ recognition.onend=()=>{
+  statusBox.textContent="● SYSTEM ONLINE";
+ };
+
+ recognition.onerror=()=>{
+  statusBox.textContent="● SYSTEM ONLINE";
+  addMessage("bot","Microphone error. Please check microphone permission.");
+ };
+
+ recognition.onresult=e=>{
+  input.value=e.results[0][0].transcript;
+  send();
+ };
+
+ recognition.start();
+}
+
+showNotes();
+</script>
+</body>
+</html>
+
